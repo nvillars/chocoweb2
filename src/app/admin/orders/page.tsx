@@ -1,49 +1,37 @@
-"use client";
+import React from 'react';
+import connectToDB from '@/lib/mongodb';
+import { getOrderModel } from '@/models/Order';
 
-import React, { useEffect, useState } from 'react';
-
-type Order = { _id?: string; id?: string; userId?: string | null; items: { productId: string; qty: number }[]; createdAt: string };
-
-export default function OrdersAdmin() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  useEffect(() => {
-    let mounted = true;
-    fetch('/api/orders')
-      .then(r => r.json())
-      .then((data) => { if (mounted) setOrders(data || []); })
-      .catch(() => {});
-    return () => { mounted = false; };
-  }, []);
-
+export default async function OrdersPage(){
+  await connectToDB();
+  const Order = getOrderModel();
+  const orders = await Order.find().sort({ createdAt:-1 }).limit(50).lean();
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-[#4E260E]">Pedidos</h2>
-        <p className="text-sm text-gray-500">Lista de pedidos recientes</p>
-      </div>
-
-      {orders.length === 0 ? (
-        <p className="text-gray-500">No hay pedidos aún.</p>
-      ) : (
-        <div className="grid gap-4">
-          {orders.map((o, i) => (
-            <div key={o._id ?? o.id ?? `order-${i}`} className="p-4 bg-white rounded-xl shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="font-medium">Pedido #{o.id}</div>
-                <div className="text-sm text-gray-500">{new Date(o.createdAt).toLocaleString()}</div>
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">Órdenes</h2>
+      <ul>
+        {orders.map((o:any) => {
+          const total = Number(o?.amounts?.totalCents ?? 0) / 100;
+          const paymentMethod = o?.payment?.method ?? '—';
+          return (
+            <li key={String(o._id)} className="p-2 border-b flex justify-between">
+              <div>
+                <div><strong>{o.user?.name || 'Anon'}</strong> - {o.status}</div>
+                <div>S/ {total.toFixed(2)} - {paymentMethod}</div>
               </div>
-              <div className="mt-3 space-y-2">
-                {o.items.map((it: { productId: string; qty: number }, idx) => (
-                  <div key={`${it.productId ?? 'p'}-${idx}`} className="flex justify-between text-sm">
-                    <div>Producto #{it.productId}</div>
-                    <div className="font-medium">Cantidad: {it.qty}</div>
-                  </div>
-                ))}
+              <div className="flex gap-2">
+                <form method="post" action={`/api/orders/${o._id}/pay`}>
+                  <button type="submit" className="bg-green-500 text-white px-2 py-1 rounded">Marcar pagada</button>
+                </form>
+                <form method="post" action={`/api/orders/${o._id}/cancel`}>
+                  <button type="submit" className="bg-red-500 text-white px-2 py-1 rounded">Cancelar</button>
+                </form>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
+// client-side admin UI lives in a separate file to avoid duplicate exports

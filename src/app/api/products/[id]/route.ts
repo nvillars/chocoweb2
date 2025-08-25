@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { updateProduct, softDeleteProduct } from '../../../../server/repositories/products';
-import { publish } from '../../../../lib/events';
+import { updateProduct, softDeleteProduct } from '@/server/repositories/products';
+import { publish } from '@/lib/events';
 
 export async function GET(req: Request, context: any) {
   // optional: fetch single product (not implemented in repo currently)

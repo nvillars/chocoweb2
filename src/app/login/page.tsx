@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { use } from 'react';
 import { useToast } from '../../context/ToastContext';
@@ -8,7 +8,10 @@ import { useToast } from '../../context/ToastContext';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  const [role, setRole] = useState<'user'|'admin'>('user');
+  // randomized suffix to make input names unique per mount (helps avoid browser autofill)
+  const nameSuffix = useMemo(() => Math.random().toString(36).slice(2, 8), []);
+  const [loginReadOnly, setLoginReadOnly] = useState(true);
+  // role selection removed: login form is only for client users
   const { login } = useAuth();
   const toast = useToast();
   const [remember, setRemember] = useState(false);
@@ -19,26 +22,28 @@ export default function LoginPage() {
   const [regEmail, setRegEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [regReadOnly, setRegReadOnly] = useState(true);
+  // registration role is forced to 'user' (hidden input in form)
   const [regError, setRegError] = useState<string | null>(null);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Demo password check: require known passwords for demo accounts
-    if (email.toLowerCase() === 'admin@ladulceria.test') {
-      if (loginPassword !== 'Admin123!') {
-  toast.push({ message: 'Contraseña de admin incorrecta' });
-        return;
+    (async () => {
+      try {
+        const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: loginPassword }) });
+        if (!res.ok) {
+          const j = await res.json().catch(()=>({}));
+          toast.push({ message: j?.error || 'Credenciales inválidas' });
+          return;
+        }
+        const user = await res.json();
+        // set auth in client context
+        login(user.email, user.role || 'user');
+        window.location.href = '/';
+      } catch (err:any) {
+        toast.push({ message: String(err) });
       }
-    }
-    if (email.toLowerCase() === 'user@ladulceria.test') {
-      if (loginPassword !== 'User123!') {
-  toast.push({ message: 'Contraseña de usuario incorrecta' });
-        return;
-      }
-    }
-
-    login(email, role);
-    window.location.href = '/';
+    })();
   };
 
   const handleRegister = async (e?: React.FormEvent) => {
@@ -50,12 +55,26 @@ export default function LoginPage() {
     if (password !== confirmPassword) return setRegError('Las contraseñas no coinciden');
 
     try {
-      const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: `${firstName.trim()} ${lastName.trim()}`, email: regEmail.trim(), role: 'user' }) });
+  const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: `${firstName.trim()} ${lastName.trim()}`, email: regEmail.trim(), password, role: 'user' }) });
       if (res.status === 409) return setRegError('Ya existe un usuario con ese correo');
       if (!res.ok) return setRegError('Error al crear la cuenta');
       const created = await res.json();
-      // auto-login demo
-      login(created.email, 'user');
+  // attempt to login with the new credentials
+      try {
+        const r2 = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: regEmail.trim(), password }) });
+          if (r2.ok) {
+            const u = await r2.json();
+    login(u.email, u.role || 'user');
+            toast.push({ message: 'Cuenta creada y sesión iniciada' });
+            window.location.href = '/';
+            return;
+          }
+      } catch (e) {
+        // fallthrough: still notify and return
+      }
+      // fallback: set a minimal login
+  // try to use returned role when available
+  login((created as any).email, (created as any).role || 'user');
       toast.push({ message: 'Cuenta creada y sesión iniciada' });
       window.location.href = '/';
     } catch (err) {
@@ -78,15 +97,18 @@ export default function LoginPage() {
           </div>
 
           <div className="px-6 py-6">
-            <form onSubmit={submit} className="space-y-4">
+            <form onSubmit={submit} className="space-y-4" autoComplete="off">
+              {/* hidden dummy fields to reduce browser autofill */}
+              <input type="text" name="__autocomplete_username" autoComplete="off" style={{ display: 'none' }} />
+              <input type="password" name="__autocomplete_password" autoComplete="off" style={{ display: 'none' }} />
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
-                <input className="form-input" placeholder="correo@dominio.test" value={email} onChange={e => setEmail(e.target.value)} />
+                <input name={`login_email_${nameSuffix}`} autoComplete="off" className="form-input" placeholder="correo@dominio.test" value={email} onChange={e => setEmail(e.target.value)} readOnly={loginReadOnly} onFocus={() => setLoginReadOnly(false)} />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Password</label>
-                <input type="password" className="form-input" placeholder="Contraseña" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} />
+                <input name={`login_password_${nameSuffix}`} autoComplete="new-password" type="password" className="form-input" placeholder="Contraseña" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} readOnly={loginReadOnly} onFocus={() => setLoginReadOnly(false)} />
               </div>
 
               <div className="flex items-center justify-between text-sm">
@@ -94,10 +116,7 @@ export default function LoginPage() {
                   <input id="remember" type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} className="h-4 w-4" />
                   <label htmlFor="remember" className="text-gray-600">Remember me?</label>
                 </div>
-                <div className="flex items-center gap-4 text-sm">
-                  <label className="flex items-center gap-2 text-gray-700"><input type="radio" checked={role==='user'} onChange={() => setRole('user')} /> Usuario</label>
-                  <label className="flex items-center gap-2 text-gray-700"><input type="radio" checked={role==='admin'} onChange={() => setRole('admin')} /> Admin</label>
-                </div>
+                {/* role selection removed: login is client-only */}
               </div>
 
               <div>
@@ -133,26 +152,31 @@ export default function LoginPage() {
                 <button onClick={() => setShowRegister(false)} className="text-white">✕</button>
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* hidden dummy fields to reduce browser autofill in modal */}
+                <input type="text" name={`__register_username_${nameSuffix}`} autoComplete="off" style={{ display: 'none' }} />
+                <input type="password" name={`__register_password_${nameSuffix}`} autoComplete="off" style={{ display: 'none' }} />
                 <div className="col-span-1 md:col-span-1">
                   <label className="block text-sm font-medium text-gray-700">Nombres</label>
-                  <input value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full p-3 border rounded mt-1" />
+                  <input name={`reg_firstName_${nameSuffix}`} autoComplete="off" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full p-3 border rounded mt-1" />
                 </div>
                 <div className="col-span-1 md:col-span-1">
                   <label className="block text-sm font-medium text-gray-700">Apellidos</label>
-                  <input value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-3 border rounded mt-1" />
+                  <input name={`reg_lastName_${nameSuffix}`} autoComplete="off" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-3 border rounded mt-1" />
                 </div>
                 <div className="col-span-1 md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700">Correo</label>
-                  <input value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full p-3 border rounded mt-1" />
+                  <input name={`reg_email_${nameSuffix}`} autoComplete="off" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full p-3 border rounded mt-1" readOnly={regReadOnly} onFocus={() => setRegReadOnly(false)} />
                 </div>
                 <div className="col-span-1 md:col-span-1">
                   <label className="block text-sm font-medium text-gray-700">Contraseña</label>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full p-3 border rounded mt-1" />
+                  <input name={`reg_password_${nameSuffix}`} autoComplete="new-password" type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full p-3 border rounded mt-1" readOnly={regReadOnly} onFocus={() => setRegReadOnly(false)} />
                 </div>
                 <div className="col-span-1 md:col-span-1">
                   <label className="block text-sm font-medium text-gray-700">Confirmar contraseña</label>
-                  <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full p-3 border rounded mt-1" />
+                  <input name={`reg_confirmPassword_${nameSuffix}`} autoComplete="new-password" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full p-3 border rounded mt-1" readOnly={regReadOnly} onFocus={() => setRegReadOnly(false)} />
                 </div>
+                {/* force role to 'user' for all public registrations */}
+                <input type="hidden" name="role" value="user" />
               </div>
               <div className="p-6 border-t flex items-center justify-between">
                 <div className="text-sm text-red-600">{regError}</div>

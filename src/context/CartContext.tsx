@@ -1,175 +1,119 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 type Product = { _id: string; name: string; price?: number; image?: string; stock?: number };
-type Order = any;
+
+type CartItem = { id: string; name?: string; price?: number; image?: string; quantity: number; stock?: number };
 
 interface CartContextType {
-  cartItems: { [key: string]: number };
-  addToCart: (productId: string | number, quantity?: number) => Promise<boolean> | boolean; // returns false if cannot add due to stock
-  removeFromCart: (productId: string | number) => void;
-    setQuantity: (productId: string | number, quantity: number) => void;
-  getQuantity: (productId: string | number) => number;
-  getTotalItems: () => number;
-  getTotalPrice: () => number;
+  addToCart: (id: string, qty?: number) => boolean;
+  setQuantity: (id: string, qty: number) => void;
+  removeFromCart: (id: string) => void;
   getCartItems: () => CartItem[];
-  placeOrder: (userId?: string | null) => Promise<Order>;
-}
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  quantity: number;
-  stock?: number;
+  getTotalPrice: () => number;
+  getTotalItems: () => number;
+  getQuantity: (id: string) => number;
+  placeOrder: (opts?: { paymentMethod?: string; user?: any }) => Promise<any>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const STORAGE_KEY = 'ladulceria_cart_v1';
+
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [cartItems, setCartItems] = useState<{ [key: string]: number }>({});
+  const [state, setState] = useState<Record<string, number>>({});
   const [productCache, setProductCache] = useState<Record<string, Product>>({});
 
-  // preload products once to have stock/price info locally
   useEffect(() => {
-    let mounted = true;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setState(JSON.parse(raw));
+    } catch (e) { }
+
     fetch('/api/products')
       .then(r => r.json())
-      .then((data: Product[]) => { if (!mounted) return; const map: Record<string, Product> = {}; data.forEach(p => { if (p && p._id) map[p._id] = p; }); setProductCache(map); })
-      .catch(() => {});
-    return () => { mounted = false; };
-  }, []);
+      .then((list) => { const map: any = {}; list.forEach((p: any) => map[p._id || p.id] = p); setProductCache(map); })
+      .catch(() => { });
 
-  // subscribe to SSE product changes to keep productCache updated in realtime
-  useEffect(() => {
-    let es: EventSource | null = null;
-    try {
-      es = new EventSource('/api/events');
-      es.addEventListener('product.changed', (ev: MessageEvent) => {
-        try {
-          const d = JSON.parse(ev.data);
-          if (d && d.product && d.product._id) {
-            setProductCache(prev => ({ ...prev, [d.product._id]: d.product }));
-          }
-        } catch (e) {}
-      });
-    } catch (e) {}
-    return () => { if (es) es.close(); };
-  }, []);
-  // useToast is a hook; to use it we create an internal component wrapper below.
-
-  const addToCart = (productId: string | number, quantity: number = 1) => {
-    const id = String(productId);
-    const product = productCache[id];
-    const current = cartItems[id] || 0;
-    if (product && typeof product.stock === 'number' && current + quantity > product.stock) {
-      return false;
-    }
-    setCartItems((prev) => ({
-      ...prev,
-      [id]: (prev[id] || 0) + quantity,
-    }));
-    return true;
-  };
-
-  const removeFromCart = (productId: string | number) => {
-    const id = String(productId);
-    setCartItems((prev) => {
-      const newItems = { ...prev };
-      if (newItems[id] > 0) {
-        newItems[id] -= 1;
-        if (newItems[id] === 0) {
-          delete newItems[id];
+    const es = new EventSource('/api/events');
+    es.onmessage = (ev) => {
+      try {
+        const data = JSON.parse(ev.data);
+        if (data?.type === 'product.changed' && data.product?._id) {
+          setProductCache(prev => ({ ...prev, [data.product._id]: data.product }));
         }
-      }
-      return newItems;
-    });
-  };
+      } catch (e) { }
+    };
+    return () => es.close();
+  }, []);
 
-  const setQuantity = (productId: string | number, quantity: number) => {
-    const id = String(productId);
-    setCartItems(prev => {
-      const next = { ...prev };
-      if (quantity <= 0) {
-        delete next[id];
-      } else {
-        next[id] = quantity;
-      }
+  useEffect(() => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { } }, [state]);
+
+  function addToCart(id: string, qty = 1) {
+    const p = productCache[id];
+    const stock = p?.stock ?? Infinity;
+    setState(s => {
+      const cur = s[id] || 0;
+      const want = Math.min(stock, cur + qty);
+      if (want === cur) return s;
+      return { ...s, [id]: want };
+    });
+    return true;
+  }
+
+  function setQuantity(id: string, qty: number) {
+    const p = productCache[id];
+    const stock = p?.stock ?? Infinity;
+    const q = Math.max(0, Math.min(stock, qty));
+    setState(s => {
+      const next = { ...s };
+      if (q <= 0) delete next[id]; else next[id] = q;
       return next;
     });
-  };
+  }
 
-  const getQuantity = (productId: string | number) => cartItems[String(productId)] || 0;
+  function removeFromCart(id: string) { setState(s => { const c = { ...s }; delete c[id]; return c; }); }
 
-  const getTotalItems = () => {
-    return Object.values(cartItems).reduce((sum, quantity) => sum + quantity, 0);
-  };
+  function getCartItems() {
+    return Object.entries(state).map(([id, q]) => ({ id, quantity: q, ...(productCache[id] || {}) })) as CartItem[];
+  }
 
-  const getCartItems = (): CartItem[] => {
-    return Object.entries(cartItems)
-      .filter(([, quantity]) => quantity > 0)
-      .map(([ productIdStr, quantity ]) => {
-        const id = productIdStr;
-        const product = productCache[id];
-        if (!product) return { id, name: 'Unknown', price: 0, image: '', quantity };
-  return { id, name: product.name, price: product.price || 0, image: product.image || '', quantity, stock: product.stock };
-      });
-  };
+  function getTotalPrice() {
+    return getCartItems().reduce((acc, it) => acc + ((it.price || 0) * it.quantity), 0);
+  }
 
-  const getTotalPrice = () => {
-    return getCartItems().reduce((sum, item) => sum + item.price * item.quantity, 0);
-  };
+  function getTotalItems() {
+    return Object.values(state).reduce((acc, v) => acc + v, 0);
+  }
 
-  const placeOrder = async (userId?: string | null) => {
-  const items = getCartItems().map((i) => ({ productId: i.id, qty: i.quantity, unitPriceCents: Math.round(i.price * 100) }));
-    const subtotal = getTotalPrice();
-    const shipping = 8;
-    const total = subtotal + shipping;
-    const resp = await fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: userId ?? null, items, subtotal, shipping, total }),
-    });
-    if (resp.status === 409) {
-      const j = await resp.json();
-      throw new Error(j.error || 'Insufficient stock');
+  function getQuantity(id: string) {
+    return state[id] || 0;
+  }
+
+  async function placeOrder(opts?: { paymentMethod?: string; user?: any }) {
+    const items = getCartItems().map(it => ({ productId: it.id, qty: it.quantity }));
+    const idKey = crypto.randomUUID();
+    const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type':'application/json', 'Idempotency-Key': idKey }, body: JSON.stringify({ items, paymentMethod: opts?.paymentMethod || 'cod', user: opts?.user }) });
+    if (res.status === 201) return res.json();
+    if (res.status === 409) {
+      const err = await res.json();
+      throw new Error(JSON.stringify(err));
     }
-    if (!resp.ok) {
-      const j = await resp.json();
-      throw new Error(j.error || 'Order failed');
-    }
-    const order = await resp.json();
-    // clear cart after successful order
-    setCartItems({});
-    return order;
-  };
+    const err = await res.json().catch(()=>({}));
+    throw new Error(JSON.stringify(err));
+  }
 
   return (
-    <CartContext.Provider
-      value={{
-  cartItems,
-  addToCart,
-  removeFromCart,
-  setQuantity,
-        getQuantity,
-        getTotalItems,
-        getTotalPrice,
-        getCartItems,
-          placeOrder,
-      }}
-    >
+    <CartContext.Provider value={{ addToCart, setQuantity, removeFromCart, getCartItems, getTotalPrice, getTotalItems, getQuantity, placeOrder }}>
       {children}
     </CartContext.Provider>
   );
 }
 
 export function useCart() {
-  const context = useContext(CartContext);
-  if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
-  return context;
+  const ctx = useContext(CartContext);
+  if (!ctx) throw new Error('useCart must be used within CartProvider');
+  return ctx;
 }
 

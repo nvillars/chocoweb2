@@ -6,6 +6,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
+import { useRouter } from "next/navigation";
 import styles from "./HeroVideo.module.css";
 
 const desktopPlaylist = ["/videos/video1.mp4", "/videos/video2.mp4"];
@@ -293,7 +296,8 @@ export default function HeroVideo(): React.ReactElement {
       <div className={styles.hero__overlay}>
         <div>
           <h1>Chocolate artesanal hecho a mano</h1>
-          <a href="/shop" className={styles.hero__cta}>Compra ahora</a>
+          {/* Show CTA only when not admin. If no user (guest) show it; if user.role === 'user' show it; hide for admin */}
+          <CTA />
         </div>
       </div>
 
@@ -307,3 +311,34 @@ export default function HeroVideo(): React.ReactElement {
     </section>
   );
 }
+
+  function CTA() {
+    // small client-only component so we can use hooks
+    const { user } = useAuth();
+    const cart = useCart();
+    const router = useRouter();
+
+    // hide CTA for admin role explicitly
+    if (user && user.role === 'admin') return null;
+
+    const handleClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      try {
+        const total = cart.getTotalItems();
+        if (!total || total <= 0) {
+          // redirect to product list when cart empty
+          router.push('/productos');
+        } else {
+          // redirect to checkout/cart when there are items
+          router.push('/checkout');
+        }
+      } catch (err) {
+        // fallback: go to products
+        router.push('/productos');
+      }
+    };
+
+    return (
+      <a href="#" onClick={handleClick} className={styles.hero__cta}>Compra ahora</a>
+    );
+  }

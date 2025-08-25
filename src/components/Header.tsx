@@ -1,9 +1,11 @@
 "use client";
 
 import HeaderAuth from './HeaderAuth';
+import Link from 'next/link';
 import { useSSEStatus } from '../context/SSEStatusContext';
 import { useEffect, useRef } from 'react';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function Header() {
   const { status } = (() => {
@@ -34,8 +36,18 @@ export default function Header() {
           <div className="flex items-center gap-2">
             <span className={`w-3 h-3 rounded-full ${status === 'connected' ? 'bg-green-400' : status === 'connecting' ? 'bg-yellow-300' : 'bg-red-400'}`} title={`SSE: ${status}`} />
           </div>
-          <a href="#" className="hover:underline">Home</a>
-          <a href="#catalog" className="hover:underline">Browse</a>
+          <Link href="/" className="hover:underline">Home</Link>
+          <Link href="/productos" className="hover:underline">Browse</Link>
+          {/* Show "Mis pedidos" only when there's a logged-in user */}
+          {(() => {
+            try {
+              const a = useAuth();
+              if (a && a.user) return <Link href="/mis-pedidos" className="hover:underline">Mis pedidos</Link>;
+              return null;
+            } catch (e) {
+              return null;
+            }
+          })()}
           <HeaderAuth />
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { connectToDB } from '../../../../src/lib/mongodb';
-import { getUserModel } from '../../../../src/models/User';
+import { connectToDB } from '@/lib/mongodb';
+import { getUserModel } from '@/models/User';
 import { z } from 'zod';
 
 export async function GET() {
@@ -14,7 +14,7 @@ export async function GET() {
   }
 }
 
-const createUserSchema = z.object({ name: z.string().min(1), email: z.string().email(), role: z.string().optional() });
+const createUserSchema = z.object({ name: z.string().min(1), email: z.string().email(), password: z.string().min(6), role: z.enum(['user','admin']).optional() });
 
 export async function POST(req: Request) {
   try {
@@ -24,8 +24,15 @@ export async function POST(req: Request) {
     const User = getUserModel();
     const exists = await User.findOne({ email: data.email }).lean().exec();
     if (exists) return NextResponse.json({ error: 'User already exists' }, { status: 409 });
-    const created = await User.create({ name: data.name, email: data.email, role: data.role || 'user' });
-    return NextResponse.json(created.toJSON(), { status: 201 });
+    // hash password
+    // runtime require to avoid bundler issues
+    // eslint-disable-next-line no-eval
+    const reqfn: any = eval('require');
+    const bcrypt = reqfn('bcryptjs');
+    const hash = await bcrypt.hash(data.password, 10);
+  // Public registration must always create standard users. Ignore any role supplied by client.
+  const created = await User.create({ name: data.name, email: data.email, passwordHash: hash, role: 'user' });
+  return NextResponse.json({ id: created._id, email: created.email, name: created.name, role: created.role }, { status: 201 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || String(err) }, { status: 400 });
   }

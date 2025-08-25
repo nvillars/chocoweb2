@@ -4,12 +4,16 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
+import { useRouter } from 'next/navigation';
 import QuantitySelector from './QuantitySelector';
 
 export default function FloatingCart() {
   const [isOpen, setIsOpen] = useState(false);
   const { addToCart, removeFromCart, getTotalItems, getTotalPrice, getCartItems, setQuantity } = useCart();
   const toast = useToast();
+  const { user } = useAuth();
+  const router = useRouter();
 
   const cartItemsList = getCartItems();
   const totalItems = getTotalItems();
@@ -93,14 +97,14 @@ export default function FloatingCart() {
                     <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                       <div className="w-12 h-12 relative">
                         {item.image ? (
-                          <Image src={item.image} alt={item.name} fill style={{ objectFit: 'contain' }} />
+                          <Image src={String(item.image)} alt={String(item.name || '')} fill style={{ objectFit: 'contain' }} />
                         ) : (
                           <div className="w-full h-full bg-gray-100 rounded-md" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-sm text-[#4E260E] truncate">{item.name}</h4>
-                        <p className="text-sm text-gray-600">S/ {item.price.toFixed(2)}</p>
+                        <p className="text-sm text-gray-600">S/ {(item.price ?? 0).toFixed(2)}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
@@ -128,10 +132,18 @@ export default function FloatingCart() {
                   <span className="font-semibold text-[#7B3F00]">S/ {totalPrice.toFixed(2)}</span>
                 </div>
 
-                <button className="w-full bg-yellow-400 hover:bg-yellow-500 text-[#4E260E] py-3 rounded-lg font-semibold transition-colors text-sm">
-                  Ingresa tu dirección o selecciona un local para continuar
+                <button
+                  onClick={() => router.push('/checkout')}
+                  disabled={!user}
+                  className={`w-full py-3 rounded-lg font-semibold transition-colors text-sm ${user ? 'bg-yellow-400 hover:bg-yellow-500 text-[#4E260E]' : 'bg-yellow-200 text-gray-400 cursor-not-allowed'}`}
+                >
+                  {user ? 'Ingresa tu dirección o selecciona un local para continuar' : 'Inicia sesión para ingresar dirección'}
                 </button>
-                <button className="w-full bg-gray-300 hover:bg-gray-400 text-gray-700 py-3 rounded-lg font-semibold transition-colors text-sm">
+                <button
+                  onClick={() => router.push('/checkout')}
+                  disabled={!user}
+                  className={`w-full py-3 rounded-lg font-semibold transition-colors text-sm ${user ? 'bg-gray-800 text-white hover:opacity-95' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                >
                   Continuar
                 </button>
               </div>

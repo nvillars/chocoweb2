@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { subscribe, sendEventFormat } from '../../../../src/lib/events';
+import { subscribe, sendEventFormat } from '@/lib/events';
 
 export const runtime = 'edge';
 
