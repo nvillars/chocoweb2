@@ -68,7 +68,7 @@ async function main() {
   if (admin && prod1) {
     const order = {
       userId: admin._id,
-      items: [ { productId: prod1._id, qty: 2, unitPriceCents: prod1.priceCents } ],
+      items: [ { productId: prod1._id, qty: 2, unitPrice: prod1.price } ],
       status: 'pending',
       createdAt: new Date()
     };

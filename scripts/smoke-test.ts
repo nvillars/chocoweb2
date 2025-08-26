@@ -29,8 +29,8 @@ const OrderSchema = new Schema(
       {
         productId: Types.ObjectId,
         qty: Number,
-        unitPriceCents: Number,
-        lineTotalCents: Number,
+  unitPrice: Number,
+  lineTotal: Number,
         name: String,
       },
     ],

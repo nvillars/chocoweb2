@@ -48,7 +48,7 @@ Prompt a Copilot:
 Crea modelos Mongoose con estos campos mínimos y timestamps: true.
 Product: slug (unique), name, description, priceCents (number), stock (number), published (boolean, default false), deletedAt (Date|null), image, tags (string[]).
 User: email (unique), name, role: 'admin'|'user'.
-Order: userId (ObjectId->User), items: [{ productId (ObjectId->Product), qty (number), unitPriceCents (number) }], status: 'pending'|'paid'|'shipped'.
+Order: userId (ObjectId->User), items: [{ productId (ObjectId->Product), qty (number), unitPrice (number) }], status: 'pending'|'paid'|'shipped'.
 Exporta getProductModel(), getUserModel(), getOrderModel() para evitar recompilar modelos en hot reload.
 
 Aceptación: Archivos exportan funciones getXModel() y schemas correctos.

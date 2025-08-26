@@ -4,17 +4,18 @@ const OrderItemSchema = new Schema({
   productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
   name: { type: String, required: true },
   qty: { type: Number, required: true },
-  unitPriceCents: { type: Number, required: true },
-  lineTotalCents: { type: Number, required: true }
+  unitPrice: { type: Number, required: true },
+  lineTotal: { type: Number, required: true }
 }, { _id: false });
 
 const OrderSchema = new Schema({
   items: { type: [OrderItemSchema], required: true },
   amounts: {
-    subtotalCents: { type: Number, required: true },
-    shippingCents: { type: Number, required: true, default: 0 },
-    taxCents: { type: Number, required: true, default: 0 },
-    totalCents: { type: Number, required: true }
+  subtotal: { type: Number, required: true },
+  // store shipping/tax/total as decimal values (units)
+  shipping: { type: Number, required: true, default: 0 },
+  tax: { type: Number, required: true, default: 0 },
+  total: { type: Number, required: true }
   },
   payment: {
     method: { type: String, enum: ['stripe','yape','plin','transfer','cod'], required: true },

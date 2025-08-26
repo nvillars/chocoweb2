@@ -11,7 +11,7 @@ export default async function OrdersPage(){
       <h2 className="text-xl font-bold mb-4">Órdenes</h2>
       <ul>
         {orders.map((o:any) => {
-          const total = Number(o?.amounts?.totalCents ?? 0) / 100;
+          const total = Number(o?.amounts?.total ?? 0);
           const paymentMethod = o?.payment?.method ?? '—';
           return (
             <li key={String(o._id)} className="p-2 border-b flex justify-between">

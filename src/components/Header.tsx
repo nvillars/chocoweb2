@@ -42,7 +42,8 @@ export default function Header() {
           {(() => {
             try {
               const a = useAuth();
-              if (a && a.user) return <Link href="/mis-pedidos" className="hover:underline">Mis pedidos</Link>;
+              // hide "Mis pedidos" for admin users (admins don't place orders)
+              if (a && a.user && (a.user as any).role !== 'admin') return <Link href="/mis-pedidos" className="hover:underline">Mis pedidos</Link>;
               return null;
             } catch (e) {
               return null;

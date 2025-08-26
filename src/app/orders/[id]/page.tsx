@@ -54,20 +54,20 @@ export default function OrderDetailPage() {
           <div className="text-right">
             <div className="font-semibold">Estado: {order.status}</div>
             <div className="text-sm text-gray-600">Pago: {order.payment?.method} {order.payment?.status ? `· ${order.payment.status}` : ''}</div>
-            <div className="text-lg font-bold">S/ {((order.amounts?.totalCents ?? 0)/100).toFixed(2)}</div>
+            <div className="text-lg font-bold">S/ {(order.amounts?.total ?? 0).toFixed(2)}</div>
           </div>
         </div>
 
         <div className="divide-y">
-          {((order.items || []) as any[]).map((it, idx) => (
+      {((order.items || []) as any[]).map((it, idx) => (
             <div key={idx} className="py-4 flex items-center justify-between">
               <div>
                 <div className="font-medium">{it.name}</div>
                 <div className="text-sm text-gray-600">Cantidad: {it.qty}</div>
               </div>
               <div className="text-right">
-                <div>S/ {(it.lineTotalCents/100).toFixed(2)}</div>
-                <div className="text-sm text-gray-500">{(it.unitPriceCents/100).toFixed(2)} c/u</div>
+        <div>S/ {(it.lineTotal).toFixed(2)}</div>
+        <div className="text-sm text-gray-500">{(it.unitPrice).toFixed(2)} c/u</div>
               </div>
             </div>
           ))}
@@ -75,10 +75,10 @@ export default function OrderDetailPage() {
 
         <div className="mt-4 flex justify-end text-sm">
           <div className="w-64">
-            <div className="flex justify-between"><span className="text-gray-600">Subtotal</span><span className="font-semibold">S/ {((order.amounts?.subtotalCents ?? 0)/100).toFixed(2)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-600">Envio</span><span className="font-semibold">S/ {((order.amounts?.shippingCents ?? 0)/100).toFixed(2)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-600">Impuesto</span><span className="font-semibold">S/ {((order.amounts?.taxCents ?? 0)/100).toFixed(2)}</span></div>
-            <div className="flex justify-between mt-2"><span className="text-gray-800 font-bold">Total</span><span className="font-bold">S/ {((order.amounts?.totalCents ?? 0)/100).toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-600">Subtotal</span><span className="font-semibold">S/ {(order.amounts?.subtotal ?? 0).toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-600">Envio</span><span className="font-semibold">S/ {(order.amounts?.shipping ?? 0).toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-600">Impuesto</span><span className="font-semibold">S/ {(order.amounts?.tax ?? 0).toFixed(2)}</span></div>
+            <div className="flex justify-between mt-2"><span className="text-gray-800 font-bold">Total</span><span className="font-bold">S/ {(order.amounts?.total ?? 0).toFixed(2)}</span></div>
           </div>
         </div>
       </div>

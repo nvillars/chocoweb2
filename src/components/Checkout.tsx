@@ -105,7 +105,7 @@ export default function Checkout() {
               <h3 className="text-xl font-bold text-green-800 mb-2">Pedido recibido</h3>
               <p className="text-sm text-green-700 mb-2">Gracias. Tu pedido ha sido creado correctamente.</p>
               <p className="text-sm text-gray-700">Número de orden: <span className="font-mono text-gray-900">{createdOrder._id ?? createdOrder.id ?? '—'}</span></p>
-              <p className="text-sm text-gray-700">Total: <span className="font-semibold">S/ {((createdOrder.amounts?.totalCents ?? 0)/100).toFixed(2)}</span></p>
+              <p className="text-sm text-gray-700">Total: <span className="font-semibold">S/ {(createdOrder.amounts?.total ?? 0).toFixed(2)}</span></p>
               <div className="mt-4 flex gap-2 justify-center">
                 <button onClick={() => router.push('/')} className="px-4 py-2 bg-[#4E260E] text-white rounded-md">Volver al inicio</button>
                 <button onClick={() => router.push(`/orders/${createdOrder._id ?? createdOrder.id}`)} className="px-4 py-2 bg-white border rounded-md">Ver detalle</button>

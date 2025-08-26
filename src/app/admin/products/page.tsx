@@ -256,6 +256,8 @@ export default function ProductsAdmin() {
             <div>
               <label className="block text-sm font-medium text-gray-700">Imagen (url)</label>
               <input className="mt-1 block w-full rounded border p-2" value={form.image} onChange={e => setForm(f => ({ ...f, image: e.target.value }))} />
+              {/* Allow admins to upload an image file from their device when creating a product */}
+              <input type="file" accept="image/*" onChange={e => setForm(f => ({ ...f, imageFile: e.target.files ? e.target.files[0] : null }))} className="mt-2" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Tags (coma-separado)</label>

@@ -7,14 +7,14 @@ import { useAuth } from '../../context/AuthContext';
 type OrderItem = {
   name: string;
   qty: number;
-  unitPriceCents: number;
-  lineTotalCents: number;
+  unitPrice: number;
+  lineTotal: number;
 };
 
 type Order = {
   _id: string;
   items: OrderItem[];
-  amounts: { subtotalCents: number; shippingCents: number; taxCents: number; totalCents: number };
+  amounts: { subtotal: number; shipping: number; tax: number; total: number };
   status: string;
   payment: { method: string; status?: string };
   createdAt: string;
@@ -68,7 +68,7 @@ export default function MisPedidosPage() {
                   <div className="text-sm text-gray-600">{new Date(o.createdAt).toLocaleString()}</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold">{(o.amounts.totalCents / 100).toFixed(2)} PEN</div>
+  <div className="font-semibold">{(o.amounts.total).toFixed(2)} PEN</div>
                   <div className="text-sm">Estado: {o.status}</div>
                 </div>
               </div>
@@ -81,8 +81,8 @@ export default function MisPedidosPage() {
                         <div className="text-sm text-gray-600">Cantidad: {it.qty}</div>
                       </div>
                       <div className="text-right">
-                        <div>{(it.lineTotalCents / 100).toFixed(2)} PEN</div>
-                        <div className="text-sm text-gray-600">{(it.unitPriceCents / 100).toFixed(2)} c/u</div>
+                  <div>{(it.lineTotal).toFixed(2)} PEN</div>
+                                <div className="text-sm text-gray-600">{(it.unitPrice).toFixed(2)} c/u</div>
                       </div>
                     </li>
                   ))}

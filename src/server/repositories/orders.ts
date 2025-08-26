@@ -33,16 +33,18 @@ export async function createOrder(input: unknown, opts?: { idempotencyKey?: stri
   const products = await Product.find({ _id: { $in: pids } }).lean();
   const prodMap = new Map(products.map(p => [String(p._id), p]));
 
-  // build items with price cents
+  // build items using unit amounts (decimal units). Keep subtotal in cents for payments but store amounts in units on the document.
   const itemsSnapshot: any[] = [];
-  let subtotal = 0;
+  let subtotalCents = 0; // used for payment intents and precise math
   for (const it of parsed.items) {
     const p = prodMap.get(it.productId);
     if (!p || (p as any).deletedAt || !(p as any).published) throw { code: 'VALIDATION_ERROR', message: 'Product not available', productId: it.productId };
-    const unitPriceCents = Math.round(((p as any).price ?? 0) * 100);
-    const line = unitPriceCents * it.qty;
-  itemsSnapshot.push({ productId: new Types.ObjectId(it.productId), name: (p as any).name, qty: it.qty, unitPriceCents, lineTotalCents: line });
-    subtotal += line;
+    const unitPrice = Number(((p as any).price ?? 0));
+    const unitPriceCents = Math.round(unitPrice * 100);
+    const lineCents = unitPriceCents * it.qty;
+    const line = lineCents / 100;
+    itemsSnapshot.push({ productId: new Types.ObjectId(it.productId), name: (p as any).name, qty: it.qty, unitPrice: unitPrice, lineTotal: line });
+    subtotalCents += lineCents;
   }
 
   const session = await mongoose.startSession();
@@ -56,7 +58,8 @@ export async function createOrder(input: unknown, opts?: { idempotencyKey?: stri
     // decrement stock atomically within the session
     appliedItems = await decrementStockOrThrow(session, parsed.items as any);
 
-    const amounts = { subtotalCents: subtotal, shippingCents: 0, taxCents: 0, totalCents: subtotal };
+  // amounts: store subtotal/shipping/tax/total as decimal units. Keep subtotalCents for payment where needed.
+  const amounts = { subtotal: subtotalCents / 100, shipping: 0, tax: 0, total: subtotalCents / 100 };
     const orderPayload: any = {
       items: itemsSnapshot,
       amounts,
@@ -72,7 +75,8 @@ export async function createOrder(input: unknown, opts?: { idempotencyKey?: stri
 
     let clientSecret: string | undefined;
     if (parsed.paymentMethod === 'stripe' && process.env.STRIPE_SECRET_KEY) {
-      const pi = await createPaymentIntent(amounts.totalCents, 'pen');
+  // createPaymentIntent expects amount in cents
+  const pi = await createPaymentIntent(subtotalCents, 'pen');
       await Order.updateOne({ _id: orderDoc[0]._id }, { $set: { 'payment.providerId': (pi as any).id } }, { session });
       clientSecret = (pi as any).clientSecret;
     }
@@ -103,7 +107,7 @@ export async function createOrder(input: unknown, opts?: { idempotencyKey?: stri
       try {
         appliedItems = await decrementStockOrThrow(null, parsed.items as any);
 
-        const amounts = { subtotalCents: subtotal, shippingCents: 0, taxCents: 0, totalCents: subtotal };
+  const amounts = { subtotal: subtotalCents / 100, shipping: 0, tax: 0, total: subtotalCents / 100 };
         const orderPayload: any = {
           items: itemsSnapshot,
           amounts,
@@ -119,7 +123,7 @@ export async function createOrder(input: unknown, opts?: { idempotencyKey?: stri
 
         let clientSecret: string | undefined;
         if (parsed.paymentMethod === 'stripe' && process.env.STRIPE_SECRET_KEY) {
-          const pi = await createPaymentIntent(amounts.totalCents, 'pen');
+          const pi = await createPaymentIntent(subtotal, 'pen');
           await Order.updateOne({ _id: orderDoc._id }, { $set: { 'payment.providerId': (pi as any).id } });
           clientSecret = (pi as any).clientSecret;
         }
