@@ -6,15 +6,16 @@ import { ToastProvider } from "../context/ToastContext";
 import { SSEProvider } from "../context/SSEStatusContext";
 import ToastContainer from "../components/ToastContainer";
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 
 export const metadata: Metadata = {
-  title: "La Dulcería - Tienda de Chocolates",
+  title: "La Dulcerina - Tienda de Chocolates",
   description: "La mejor tienda virtual de chocolates de cacao",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "La Dulcería"
+  title: "La Dulcerina"
   },
   formatDetection: {
     telephone: false
@@ -84,8 +85,10 @@ export default function RootLayout({
             <SSEProvider>
               <ToastProvider>
                 <Header />
+                <div className="site-header-spacer" aria-hidden />
                 {children}
                 <ToastContainer />
+                <Footer />
               </ToastProvider>
             </SSEProvider>
           </CartProvider>

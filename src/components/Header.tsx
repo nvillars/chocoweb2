@@ -80,7 +80,7 @@ export default function Header() {
         <div className="flex items-center gap-4">
           <Link href="/" aria-label="Ir a inicio" className="inline-flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center text-2xl" aria-hidden>🍫</div>
-            <span className="text-lg font-semibold tracking-wide">La Dulcerina</span>
+            <span className="text-lg font-semibold tracking-wide">La Dulcería</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-4 ml-6" aria-label="Navegación principal">
@@ -122,13 +122,13 @@ export default function Header() {
       </div>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-60">
+        <div className="fixed inset-0 z-60" aria-hidden={false}>
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} aria-hidden />
-          <nav className="absolute bottom-0 left-0 right-0 bg-white p-6 rounded-t-xl shadow-elev" role="dialog" aria-modal="true" aria-label="Menú móvil">
-            <div className="flex items-center justify-between mb-4">
+          <nav className="absolute inset-0 md:inset-auto md:bottom-0 left-0 right-0 bg-white p-6 rounded-t-xl md:rounded-none shadow-elev overflow-auto" role="dialog" aria-modal="true" aria-label="Menú móvil">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">🍫</div>
-                <div className="font-semibold">La Dulcerina</div>
+                <div className="font-semibold">La Dulcería</div>
               </div>
               <button onClick={() => setMobileOpen(false)} aria-label="Cerrar menú" className="p-2 rounded-md">✕</button>
             </div>
