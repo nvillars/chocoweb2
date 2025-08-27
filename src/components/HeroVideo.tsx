@@ -89,9 +89,11 @@ export default function HeroVideo(): React.ReactElement {
     const backEl = back;
     const frontEl = front;
     // add active class to back and remove from front to trigger CSS transition
-    try {
-      backEl.classList.add((styles as any).hero__layerActive);
-      frontEl.classList.remove((styles as any).hero__layerActive);
+      try {
+      const layerActive = (styles as Record<string, string>)['hero__layerActive'];
+      if (layerActive) backEl.classList.add(layerActive);
+      const frontActive = (styles as Record<string, string>)['hero__layerActive'];
+      if (frontActive) frontEl.classList.remove(frontActive);
     } catch (e) {
       // if class toggling fails silently continue
     }
@@ -183,7 +185,7 @@ export default function HeroVideo(): React.ReactElement {
     mqlRef.current = mql;
     // set initial value
     setIsMobile(!!mql.matches);
-    function onChange(e: any) {
+    function onChange(e: MediaQueryListEvent) {
       const nowMobile = !!e.matches;
       // if the value actually changed
       if (nowMobile !== isMobile) {
@@ -204,25 +206,73 @@ export default function HeroVideo(): React.ReactElement {
       }
     }
     // add listener
+    type LegacyListener = (this: MediaQueryList, ev: MediaQueryListEvent) => void;
     if (typeof mql.addEventListener === "function") {
-      mql.addEventListener("change", onChange as any);
+      mql.addEventListener("change", onChange);
     } else if (typeof mql.addListener === "function") {
-      // older browsers
-      // @ts-ignore
-      mql.addListener(onChange);
+      // older browsers - cast the fn to the legacy signature
+      (mql as unknown as { addListener: (l: LegacyListener) => void }).addListener(onChange as LegacyListener);
     }
 
     return () => {
       if (!mql) return;
       if (typeof mql.removeEventListener === "function") {
-        mql.removeEventListener("change", onChange as any);
+        mql.removeEventListener("change", onChange);
       } else if (typeof mql.removeListener === "function") {
-        // @ts-ignore
-        mql.removeListener(onChange);
+        (mql as unknown as { removeListener: (l: LegacyListener) => void }).removeListener(onChange as LegacyListener);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile]);
+
+  // Measure header height and apply as top offset to the hero container on small screens.
+  // This avoids relying on hardcoded paddings and prevents overlap when the header height changes.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia('(max-width: 768px)');
+
+    function applyHeaderOffset() {
+      const el = containerRef.current;
+      if (!el) return;
+      // only apply on small screens
+      if (!mql.matches) {
+        el.style.paddingTop = '';
+        return;
+      }
+      // find the header element (role banner or fixed header)
+      const header = document.querySelector('header[role="banner"]') || document.querySelector('header');
+      const headerHeight = header ? (header as HTMLElement).offsetHeight : 0;
+      // add a small buffer to avoid any visual collision
+      const buffer = 10; // px
+      el.style.paddingTop = `${headerHeight + buffer}px`;
+    }
+
+    // apply immediately
+    applyHeaderOffset();
+
+    // re-apply on resize and when media query changes
+    const onResize = () => requestAnimationFrame(applyHeaderOffset);
+    window.addEventListener('resize', onResize);
+
+    const mqlAny = mql as MediaQueryList & {
+      addListener?: (l: (e: MediaQueryListEvent) => void) => void;
+      removeListener?: (l: (e: MediaQueryListEvent) => void) => void;
+      addEventListener?: (type: string, listener: (e: MediaQueryListEvent) => void) => void;
+      removeEventListener?: (type: string, listener: (e: MediaQueryListEvent) => void) => void;
+    };
+
+    if (typeof mqlAny.addEventListener === 'function') mqlAny.addEventListener('change', applyHeaderOffset);
+    else if (typeof mqlAny.addListener === 'function') mqlAny.addListener(applyHeaderOffset);
+
+    return () => {
+      window.removeEventListener('resize', onResize);
+      if (typeof mqlAny.removeEventListener === 'function') mqlAny.removeEventListener('change', applyHeaderOffset);
+      else if (typeof mqlAny.removeListener === 'function') mqlAny.removeListener(applyHeaderOffset);
+      // cleanup inline style
+      if (containerRef.current) containerRef.current.style.paddingTop = '';
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // intersection observer to pause/play when out of view
   useEffect(() => {
