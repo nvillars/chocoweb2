@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Inter, Playfair_Display } from 'next/font/google';
+
+// next/font must be called at module scope
+const inter = Inter({ subsets: ['latin'], weight: ['300','400','600','700','800'], display: 'swap', variable: '--font-inter' });
+const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400','600','700','800'], display: 'swap', variable: '--font-playfair' });
 import { CartProvider } from "../context/CartContext";
 import { AuthProvider } from "../context/AuthContext";
 import { ToastProvider } from "../context/ToastContext";
@@ -36,10 +40,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const inter = Inter({ subsets: ['latin'], weight: ['300','400','600','700','800'], display: 'swap', variable: '--font-inter' });
-  const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400','600','700','800'], display: 'swap', variable: '--font-playfair' });
   return (
-    <html lang="es" className={`${inter.variable} ${playfair.variable}`}>
+  <html lang="es" className={`${inter.variable} ${playfair.variable}`}>
       <head>
         <link rel="preload" as="image" href="/assets/hero-poster.jpg" />
       </head>
