@@ -40,14 +40,14 @@ html { scroll-behavior: smooth; }
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  font-family: var(--font-inter, 'Inter'), system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
 h1,h2,h3,.display {
-  font-family: 'Playfair Display', ui-serif, Georgia, 'Times New Roman', serif;
+  font-family: var(--font-playfair, 'Playfair Display'), ui-serif, Georgia, 'Times New Roman', serif;
   letter-spacing: .2px;
 }
 
