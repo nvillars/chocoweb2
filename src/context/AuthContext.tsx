@@ -7,7 +7,8 @@ type Role = 'user' | 'admin';
 type AuthState = {
   // undefined = not initialized yet, null = no user, object = logged in
   user: { id: number; name: string; email: string; role: Role } | null | undefined;
-  login: (email: string, role?: Role) => void;
+  // accept string for role to be tolerant of server responses; implementation will coerce
+  login: (email: string, role?: string) => void;
   logout: () => void;
 };
 
@@ -19,7 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('ladulceria:auth');
+      const raw = localStorage.getItem('ladulcerina:auth');
       if (raw) setUser(JSON.parse(raw));
       else setUser(null);
     } catch {
@@ -28,14 +29,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = (email: string, role: Role = 'user') => {
-    const demo = { id: role === 'admin' ? 1 : 2, name: role === 'admin' ? 'Admin Demo' : 'Usuario Demo', email, role };
+  const login = (email: string, role: string = 'user') => {
+    const normalized: Role = role === 'admin' ? 'admin' : 'user';
+    const demo = { id: normalized === 'admin' ? 1 : 2, name: normalized === 'admin' ? 'Admin Demo' : 'Usuario Demo', email, role: normalized };
     setUser(demo);
-    localStorage.setItem('ladulceria:auth', JSON.stringify(demo));
+    localStorage.setItem('ladulcerina:auth', JSON.stringify(demo));
     // write a simple session cookie so server middleware can check role (demo only)
     try {
       const value = encodeURIComponent(JSON.stringify(demo));
-      document.cookie = `ladulceria_auth=${value}; Path=/; Max-Age=${60 * 60 * 24}`;
+      document.cookie = `ladulcerina_auth=${value}; Path=/; Max-Age=${60 * 60 * 24}`;
     } catch {
       // ignore cookie failures in some environments
     }
@@ -43,9 +45,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('ladulceria:auth');
+    localStorage.removeItem('ladulcerina:auth');
     // remove cookie
-    document.cookie = 'ladulceria_auth=; Path=/; Max-Age=0';
+    document.cookie = 'ladulcerina_auth=; Path=/; Max-Age=0';
   };
 
   return (

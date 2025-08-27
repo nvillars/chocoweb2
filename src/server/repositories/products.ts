@@ -37,7 +37,7 @@ export async function createProduct(input: unknown) {
   const Product = getProductModel();
   const existing = await Product.findOne({ slug: data.slug }).exec();
   if (existing) throw new Error('Slug already exists');
-  const doc = await Product.create(data as any);
+  const doc = await Product.create(data);
   return doc.toJSON();
 }
 

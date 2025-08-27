@@ -31,15 +31,14 @@ export default function FloatingCart() {
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="bg-[#4E260E] hover:bg-[#6a331a] text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:shadow-xl transform hover:scale-105 flex items-center gap-2"
+          className="btn btn-primary rounded-full p-3 shadow-lg transition-transform duration-200 hover:scale-105 focus-visible:ring-4 focus-visible:ring-yellow-200"
+          aria-label="Abrir carrito"
         >
           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
             <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
           </svg>
           {totalItems > 0 && (
-            <span className="bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-              {totalItems}
-            </span>
+            <span className="absolute -top-2 -right-2 badge bg-red-500 text-white" aria-hidden>{totalItems}</span>
           )}
         </button>
       </div>
@@ -56,7 +55,7 @@ export default function FloatingCart() {
 
           {/* Sidebar del carrito */}
           <aside
-            className="relative h-full bg-white shadow-2xl flex flex-col pointer-events-auto z-60 border-l border-gray-200"
+            className="relative h-full bg-white card flex flex-col pointer-events-auto z-60 border-l border-gray-200"
             style={{ width: '520px', maxWidth: '100vw', borderTopLeftRadius: '18px', borderBottomLeftRadius: '18px' }}
           >
             <header className="bg-[#4E260E] text-white p-4 flex items-center justify-between rounded-t-lg">
@@ -66,7 +65,7 @@ export default function FloatingCart() {
                 </svg>
                 Tu Carrito ({totalItems})
               </h3>
-              <button onClick={() => setIsOpen(false)} className="text-white hover:text-gray-200 transition-colors">
+              <button onClick={() => setIsOpen(false)} className="text-white hover:text-gray-200 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-200" aria-label="Cerrar carrito">
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
@@ -82,7 +81,7 @@ export default function FloatingCart() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3" role="region" aria-label="Items del carrito">
               {cartItemsList.length === 0 ? (
                 <div className="text-center py-8">
                   <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="currentColor" viewBox="0 0 20 20">
@@ -109,8 +108,9 @@ export default function FloatingCart() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => removeFromCart(item.id)}
-                          className="w-7 h-7 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-xs transition-colors shadow-sm"
+                          className="w-7 h-7 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-xs transition-colors shadow-sm focus-visible:ring-4 focus-visible:ring-yellow-200"
                           style={{ minWidth: '1.5rem', minHeight: '1.5rem' }}
+                          aria-label={`Eliminar ${item.name}`}
                         >
                           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />

@@ -10,7 +10,8 @@ export async function POST(req: Request) {
     const prod = await restoreProduct(id);
     publish({ type: 'product.changed', payload: { action: 'restore', product: prod } });
     return NextResponse.json(prod);
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || String(e) }, { status: 400 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 }

@@ -13,13 +13,18 @@ export async function POST(req: Request) {
   const user = await User.findOne({ email }).select('+passwordHash').exec();
     if (!user) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     // runtime require bcrypt
-    // eslint-disable-next-line no-eval
-    const reqfn: any = eval('require');
-    const bcrypt = reqfn('bcryptjs');
-  const ok = await bcrypt.compare(password, (user as any).passwordHash || '');
+  // eslint-disable-next-line no-eval
+  const reqfn = eval('require') as NodeRequire;
+  const bcrypt = reqfn('bcryptjs') as { compare: (a: string, b: string) => Promise<boolean> };
+    const passwordHash = (user as unknown as { passwordHash?: string })?.passwordHash || '';
+    const ok = await bcrypt.compare(password, passwordHash);
     if (!ok) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     return NextResponse.json({ id: user._id, email: user.email, name: user.name, role: user.role });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 });
+  } catch (e: unknown) {
+    let msg = '';
+    if (typeof e === 'string') msg = e;
+    else if (e instanceof Error) msg = e.message;
+    else msg = String(e);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

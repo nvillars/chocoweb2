@@ -8,7 +8,9 @@ export default function OrderDetailPage() {
   const params = useParams();
   const id = params?.id as string | undefined;
   const { user } = useAuth();
-  const [order, setOrder] = useState<any | null>(null);
+  type OrderItem = { name?: string; qty?: number; unitPrice?: number; lineTotal?: number };
+  type OrderView = { _id?: string; createdAt?: string; status?: string; payment?: { method?: string; status?: string }; amounts?: { subtotal?: number; shipping?: number; tax?: number; total?: number }; items?: OrderItem[] } | null;
+  const [order, setOrder] = useState<OrderView>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,8 +28,9 @@ export default function OrderDetailPage() {
         }
         const data = await res.json();
         setOrder(data);
-      } catch (e:any) {
-        setError(e?.message || String(e));
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(msg);
       } finally {
         setLoading(false);
       }
@@ -49,7 +52,7 @@ export default function OrderDetailPage() {
           <div>
             <div className="text-sm text-gray-600">Pedido:</div>
             <div className="font-mono text-lg">{order._id}</div>
-            <div className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleString()}</div>
+            <div className="text-sm text-gray-500">{order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</div>
           </div>
           <div className="text-right">
             <div className="font-semibold">Estado: {order.status}</div>
@@ -59,15 +62,15 @@ export default function OrderDetailPage() {
         </div>
 
         <div className="divide-y">
-      {((order.items || []) as any[]).map((it, idx) => (
+      {((order.items || []) as OrderItem[]).map((it, idx) => (
             <div key={idx} className="py-4 flex items-center justify-between">
               <div>
                 <div className="font-medium">{it.name}</div>
                 <div className="text-sm text-gray-600">Cantidad: {it.qty}</div>
               </div>
               <div className="text-right">
-        <div>S/ {(it.lineTotal).toFixed(2)}</div>
-        <div className="text-sm text-gray-500">{(it.unitPrice).toFixed(2)} c/u</div>
+        <div>S/ {(it.lineTotal ?? 0).toFixed(2)}</div>
+        <div className="text-sm text-gray-500">{(it.unitPrice ?? 0).toFixed(2)} c/u</div>
               </div>
             </div>
           ))}

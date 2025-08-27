@@ -2,15 +2,23 @@ import React from 'react';
 import connectToDB from '@/lib/mongodb';
 import { getOrderModel } from '@/models/Order';
 
+type OrderView = {
+  _id: string;
+  user?: { name?: string; email?: string };
+  amounts?: { total?: number };
+  payment?: { method?: string };
+  status?: string;
+};
+
 export default async function OrdersPage(){
   await connectToDB();
   const Order = getOrderModel();
-  const orders = await Order.find().sort({ createdAt:-1 }).limit(50).lean();
+  const orders = await Order.find().sort({ createdAt:-1 }).limit(50).lean() as OrderView[];
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold mb-4">Órdenes</h2>
       <ul>
-        {orders.map((o:any) => {
+        {orders.map((o) => {
           const total = Number(o?.amounts?.total ?? 0);
           const paymentMethod = o?.payment?.method ?? '—';
           return (

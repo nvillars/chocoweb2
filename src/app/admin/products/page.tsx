@@ -13,6 +13,7 @@ type P = {
   stock: number;
   published: boolean;
   slug?: string;
+  price?: number;
 };
 
 export default function ProductsAdmin() {
@@ -132,8 +133,8 @@ export default function ProductsAdmin() {
   // use SSE with reconnection
   useEventSource('/api/events', 'product.changed', (ev: MessageEvent) => {
     try {
-      const payload = JSON.parse(ev.data);
-      const { action, product } = payload as any;
+      const payload = JSON.parse(ev.data) as { action: string; product: P & { slug?: string; price?: number } };
+      const { action, product } = payload;
       setProducts(prev => {
         const copy = [...prev];
         const idx = copy.findIndex(p => p._id === product._id || p.slug === product.slug);
@@ -407,7 +408,7 @@ export default function ProductsAdmin() {
                   )}
                 </td>
                 <td className="py-4 pr-6 text-right">
-                  <button onClick={() => { setEditingProduct(p); setEditingForm({ name: p.name, slug: p.slug || '', description: p.description || '', image: p.image || '', imageFile: null, price: (p as any).price || 0, stock: p.stock || 0, published: !!p.published, tags: '' }); }} className="mr-3 inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-[#4E260E] rounded-lg text-sm shadow-sm">Editar</button>
+                  <button onClick={() => { setEditingProduct(p); setEditingForm({ name: p.name, slug: p.slug || '', description: p.description || '', image: p.image || '', imageFile: null, price: p['price'] || 0, stock: p.stock || 0, published: !!p.published, tags: '' }); }} className="mr-3 inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-[#4E260E] rounded-lg text-sm shadow-sm">Editar</button>
                   <button onClick={() => togglePublish(p._id, !p.published)} className="mr-3 inline-flex items-center gap-2 px-3 py-2 bg-[#FFF3D9] hover:bg-[#FFE7B3] text-[#4E260E] rounded-lg text-sm shadow-sm">{p.published ? 'Ocultar' : 'Publicar'}</button>
                   <button onClick={() => requestDeleteProduct(p._id)} className="inline-flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm">Eliminar</button>
                 </td>

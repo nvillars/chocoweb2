@@ -299,6 +299,20 @@ export default function HeroVideo(): React.ReactElement {
   useEffect(() => {
     setCurrentPlaylist(isMobile ? mobilePlaylist : desktopPlaylist);
     setIndex(0);
+    // try to set initial src preferring webm when available
+    const init = async () => {
+      try {
+        const first = (isMobile ? mobilePlaylist : desktopPlaylist)[0];
+        const s = await pickSource(first);
+        const v = videoRef.current;
+        if (v) {
+          v.src = s;
+          // load but don't force play here; playIndex or intersection observer will handle playback
+          v.load();
+        }
+      } catch (e) {}
+    };
+    init();
     // update reduced motion live preference
     if (typeof window !== "undefined") {
       const rm = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -338,7 +352,8 @@ export default function HeroVideo(): React.ReactElement {
         muted
         playsInline
         preload="metadata"
-        aria-hidden="true"
+    aria-hidden="true"
+    poster="/assets/hero-poster.jpg"
         width={1920}
         height={1080}
       />

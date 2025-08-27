@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { updateProduct, softDeleteProduct } from '@/server/repositories/products';
 import { publish } from '@/lib/events';
 
@@ -10,22 +11,26 @@ export async function GET(req: Request, context: any) {
 export async function PATCH(req: Request, context: any) {
   try {
     const body = await req.json();
-  const { id } = (await context.params) as { id: string };
+  const params = context?.params;
+  const { id } = (await params) as { id: string };
   const prod = await updateProduct(id, body);
     publish({ type: 'product.changed', payload: { action: 'update', product: prod } });
     return NextResponse.json(prod);
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || String(e) }, { status: 400 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 }
 
 export async function DELETE(req: Request, context: any) {
   try {
-  const { id } = (await context.params) as { id: string };
+  const params = context?.params;
+  const { id } = (await params) as { id: string };
   const prod = await softDeleteProduct(id);
     publish({ type: 'product.changed', payload: { action: 'delete', product: prod } });
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || String(e) }, { status: 400 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 }

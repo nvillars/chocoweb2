@@ -12,18 +12,21 @@ export async function POST(req: Request) {
   const bodyText = await req.text();
   const sig = req.headers.get('stripe-signature') || '';
 
-  let event: any = null;
+  let event: unknown = null;
 
   if (process.env.STRIPE_WEBHOOK_SECRET) {
     try {
       // runtime require to avoid bundler issues when stripe isn't installed
       // eslint-disable-next-line no-eval
-      const reqfn: any = eval('require');
-      const Stripe = reqfn('stripe');
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-      event = stripe.webhooks.constructEvent(bodyText, sig, process.env.STRIPE_WEBHOOK_SECRET);
-    } catch (e: any) {
-      console.error('Stripe webhook signature verification failed:', e && e.message);
+      const reqfn = eval('require') as NodeRequire;
+      type StripeWebhooks = { constructEvent: (body: string, sig: string, secret: string) => unknown };
+      type StripeFactory = (key: string) => { webhooks: StripeWebhooks };
+      const Stripe = reqfn('stripe') as unknown as StripeFactory;
+      const stripe = Stripe(process.env.STRIPE_SECRET_KEY || '');
+      event = stripe.webhooks.constructEvent(bodyText, sig, process.env.STRIPE_WEBHOOK_SECRET || '');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error('Stripe webhook signature verification failed:', msg);
       return new Response('Invalid signature', { status: 400 });
     }
   } else {
@@ -36,18 +39,21 @@ export async function POST(req: Request) {
   }
 
   try {
-    const type = event.type;
+  type StripeEvent = { type?: string; id?: string; data?: { object?: Record<string, unknown> } };
+  const evt = event as StripeEvent;
+  const type = evt.type;
     const ProcessedWebhook = getProcessedWebhookModel();
 
     // dedupe by event id if present
-    const eventId = event.id;
-    if (eventId) {
+  const eventId = evt.id;
+  if (eventId) {
       try {
         // use raw collection insert to avoid TS overload ambiguity on Model.create
         await ProcessedWebhook.collection.insertOne({ id: eventId });
-      } catch (e: any) {
+      } catch (e: unknown) {
         // duplicate key -> already processed
-        if (e && (e.code === 11000 || e.code === 'E11000')) {
+        const errObj = e as { code?: number | string } | undefined;
+        if (errObj && (errObj.code === 11000 || errObj.code === 'E11000')) {
           console.log('Webhook event already processed:', eventId);
           return new Response('ok', { status: 200 });
         }
@@ -55,12 +61,13 @@ export async function POST(req: Request) {
       }
     }
 
-    if (type === 'payment_intent.succeeded' || type === 'payment_intent.payment_failed') {
-      const pi = event.data.object;
+  if (type === 'payment_intent.succeeded' || type === 'payment_intent.payment_failed') {
+  const pi = (evt.data && evt.data.object) as Record<string, unknown> | undefined;
       // find the order by providerId (stored as payment.providerId)
-      const ord = await Order.findOne({ 'payment.providerId': pi.id });
-      if (!ord) {
-        console.warn('Webhook: could not find order for payment intent', pi.id);
+  const providerId = typeof pi?.['id'] === 'string' ? (pi!['id'] as string) : undefined;
+  const ord = providerId ? await Order.findOne({ 'payment.providerId': providerId }) : null;
+  if (!ord) {
+        console.warn('Webhook: could not find order for payment intent', providerId);
         return new Response('ok', { status: 200 });
       }
 
@@ -78,16 +85,16 @@ export async function POST(req: Request) {
 
       // publish SSE event to notify clients
       try {
-        const publish = (globalThis as any).publish;
-        if (publish) publish({ type: 'order.updated', payload: { id: ord._id.toString(), status: ord.status } });
-      } catch (e) {
-        console.warn('Failed publishing webhook SSE', e);
+        const pub = (globalThis as unknown as { publish?: (e: unknown) => void }).publish;
+        if (pub) pub({ type: 'order.updated', payload: { id: ord._id.toString(), status: ord.status } });
+      } catch (e: unknown) {
+        console.warn('Failed publishing webhook SSE', e instanceof Error ? e.message : e);
       }
     }
 
     return new Response('ok', { status: 200 });
-  } catch (err) {
-    console.error('Error handling stripe webhook', err);
+  } catch (err: unknown) {
+    console.error('Error handling stripe webhook', err instanceof Error ? err.message : err);
     return new Response('internal error', { status: 500 });
   }
 }

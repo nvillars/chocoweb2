@@ -44,7 +44,7 @@ export default function Footer() {
       </div>
 
         <div className="border-t pt-6 pb-8 text-center text-sm text-gray-500">
-        <div className="container">&copy; {new Date().getFullYear()} La Dulcería — Chocolate artesanal y selección premium.</div>
+  <div className="container">&copy; {new Date().getFullYear()} La Dulcerina — Chocolate artesanal y selección premium.</div>
       </div>
     </footer>
   );

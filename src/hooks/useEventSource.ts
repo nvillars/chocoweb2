@@ -9,18 +9,18 @@ export function useEventSource(path: string, eventName: string, handler: Handler
   const esRef = useRef<EventSource | null>(null);
   const handlerRef = useRef<Handler>(handler);
   handlerRef.current = handler;
+  // call hook at top-level to satisfy rules-of-hooks; it will throw if provider missing, so guard with try/catch
+  let setStatus: ((s: 'connecting' | 'connected' | 'disconnected') => void) | null = null;
+  try {
+    const ctx = useSSEStatus();
+    setStatus = ctx.setStatus;
+  } catch (_e) {
+    setStatus = null;
+  }
 
   useEffect(() => {
     let closed = false;
     let retry = 0;
-    let setStatus: ((s: any) => void) | null = null;
-    try {
-      const ctx = useSSEStatus();
-      setStatus = ctx.setStatus;
-    } catch (e) {
-      // no provider, ignore
-      setStatus = null;
-    }
 
     const connect = () => {
       if (closed) return;

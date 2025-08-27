@@ -1,7 +1,7 @@
 // DEPRECATED: utilities to persist and read app data in localStorage (mock backend).
 // The project now uses MongoDB via src/server/repositories. This file remains for
 // local demo and backwards compatibility but should be migrated away from.
-export const STORAGE_KEY = 'ladulceria:data';
+export const STORAGE_KEY = 'ladulcerina:data';
 
 export type Product = {
   id: number;

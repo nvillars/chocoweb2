@@ -54,11 +54,11 @@ export default function ProductCatalog() {
   const visibleProducts = useMemo(() => products, [products]);
 
   if (loading) return (
-    <section aria-busy="true" aria-live="polite">
-      <h2 className="sr-only">Cargando productos</h2>
-      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
+    <section aria-busy="true" aria-live="polite" aria-labelledby="catalog-heading">
+      <h2 id="catalog-heading" className="sr-only">Cargando productos</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="card-compact p-4 animate-pulse" aria-hidden>
+          <div key={i} className="card p-4 animate-pulse" aria-hidden>
             <div className="w-full h-44 bg-gray-200 rounded-lg mb-4" />
             <div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
             <div className="h-4 bg-gray-200 rounded w-1/2" />
@@ -73,18 +73,20 @@ export default function ProductCatalog() {
   );
   if (error) return <div className="text-center py-12 text-red-600">{error}</div>;
   if (visibleProducts.length === 0) return (
-    <div className="text-center py-12">
+    <div className="text-center py-12" role="status" aria-live="polite">
       <h3 className="text-lg font-semibold">No hay productos disponibles</h3>
       <p className="text-sm text-gray-600">Revisa la sección de Admin → Productos o espera que se publiquen nuevos items.</p>
     </div>
   );
 
   return (
-    <section>
-      <h2 className={`text-center mb-6 sm:mb-8 ${styles.title}`}>Nuestros productos</h2>
-      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
+    <section aria-labelledby="catalog-heading">
+      <h2 id="catalog-heading" className={`text-center mb-6 sm:mb-8 ${styles.title}`}>Nuestros productos</h2>
+      <div role="list" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
         {visibleProducts.map(product => (
-          <ProductCard key={product._id} product={product} />
+          <div role="listitem" key={product._id}>
+            <ProductCard product={product} />
+          </div>
         ))}
       </div>
     </section>

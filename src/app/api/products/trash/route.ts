@@ -7,8 +7,9 @@ export async function GET() {
     const docs = await listProducts({ includeDeleted: true });
     const trashed = docs.filter(d => d.deletedAt);
     return NextResponse.json(trashed);
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || String(e) }, { status: 500 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -26,7 +27,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
     return NextResponse.json({ error: 'unknown action' }, { status: 400 });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || String(e) }, { status: 400 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 }

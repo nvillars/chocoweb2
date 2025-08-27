@@ -5,7 +5,7 @@ import connectToDB from '@/lib/mongodb';
 import { getOrderModel } from '@/models/Order';
 import { restockItems } from '@/server/repositories/inventory';
 
-export async function POST(req: Request, _ctx: any) {
+export async function POST(req: Request, _ctx: unknown) {
   await connectToDB();
   const Order = getOrderModel();
   // extract id from URL to avoid Next's params Promise typing issues
@@ -33,13 +33,13 @@ export async function POST(req: Request, _ctx: any) {
     return NextResponse.json({ ok: true });
   } else {
     // failed => restock
-    const items = ord.items.map((i: any) => ({ productId: String(i.productId), qty: i.qty }));
+    const items = (ord.items || []).map((i: { productId?: unknown; qty?: number }) => ({ productId: String(i.productId), qty: i.qty || 0 }));
     await restockItems(null, items);
     ord.status = 'failed';
     ord.payment.status = 'failed';
     await ord.save();
     // publish SSE
-    try { (globalThis as any).publish?.({ type: 'product.changed', payload: { action: 'update' } }); } catch(e){}
+    try { (globalThis as unknown as { publish?: (e: unknown) => void }).publish?.({ type: 'product.changed', payload: { action: 'update' } }); } catch(e){}
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 }

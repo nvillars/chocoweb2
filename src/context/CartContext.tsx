@@ -1,10 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-
-type Product = { _id: string; name: string; price?: number; image?: string; stock?: number };
-
-type CartItem = { id: string; name?: string; price?: number; image?: string; quantity: number; stock?: number };
+import type { Product, CartItem, User } from '../types';
 
 interface CartContextType {
   addToCart: (id: string, qty?: number) => boolean;
@@ -14,12 +11,12 @@ interface CartContextType {
   getTotalPrice: () => number;
   getTotalItems: () => number;
   getQuantity: (id: string) => number;
-  placeOrder: (opts?: { paymentMethod?: string; user?: any }) => Promise<any>;
+  placeOrder: (opts?: { paymentMethod?: string; user?: User | null }) => Promise<{ order?: unknown; clientSecret?: string }>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'ladulceria_cart_v1';
+const STORAGE_KEY = 'ladulcerina_cart_v1';
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<Record<string, number>>({});
@@ -33,7 +30,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     fetch('/api/products')
       .then(r => r.json())
-      .then((list) => { const map: any = {}; list.forEach((p: any) => map[p._id || p.id] = p); setProductCache(map); })
+      .then((list: Product[]) => { const map: Record<string, Product> = {}; list.forEach((p: Product) => map[(p._id || String(p.id || ''))] = p); setProductCache(map); })
       .catch(() => { });
 
     const es = new EventSource('/api/events');
@@ -91,9 +88,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return state[id] || 0;
   }
 
-  async function placeOrder(opts?: { paymentMethod?: string; user?: any }) {
+  async function placeOrder(opts?: { paymentMethod?: string; user?: User | null }) {
     const items = getCartItems().map(it => ({ productId: it.id, qty: it.quantity }));
-    const idKey = crypto.randomUUID();
+    const idKey = (typeof crypto !== 'undefined' && typeof (crypto as unknown as { randomUUID?: () => string }).randomUUID === 'function') ? (crypto as unknown as { randomUUID: () => string }).randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
     const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type':'application/json', 'Idempotency-Key': idKey }, body: JSON.stringify({ items, paymentMethod: opts?.paymentMethod || 'cod', user: opts?.user }) });
     if (res.status === 201) return res.json();
     if (res.status === 409) {

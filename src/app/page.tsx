@@ -7,12 +7,12 @@ import HeroVideo from "../components/HeroVideo";
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-[#FFF8F0] to-[#F9F2EC] font-sans text-gray-800">
-  {/* Hero */}
+  {/* Hero - render directly; responsive padding moved to HeroVideo styles to avoid double spacing on desktop */}
   <HeroVideo />
 
       {/* Featured section - larger spacing and softer card shadows */}
           {/* Catalog */}
-          <main id="catalog" className="max-w-7xl mx-auto py-6 px-6">
+          <main id="catalog" className="max-w-7xl mx-auto py-6 px-6" style={{ paddingTop: 24 }}>
             <ProductCatalog />
           </main>
 
@@ -45,7 +45,7 @@ export default function Home() {
       <FloatingCart />
 
       <footer className="text-center text-gray-600 py-10 border-t mt-12">
-        &copy; {new Date().getFullYear()} ladulcerina. Todos los derechos reservados.
+  &copy; {new Date().getFullYear()} La Dulcerina. Todos los derechos reservados.
       </footer>
     </div>
   );

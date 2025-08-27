@@ -1,6 +1,6 @@
 .hero {
   position: relative;
-  min-height: 62vh;
+  min-height: 66vh; /* increased to avoid overlap with fixed header */
   overflow: hidden;
 }
 
@@ -36,7 +36,7 @@
   text-align: center;
   color: #fff;
   text-shadow: 0 2px 16px rgba(0,0,0,.35);
-  padding: 2rem 1rem;
+  padding: 1.25rem 1rem 2rem; /* reduced top padding for desktop so hero sits closer to header */
 }
 
 .hero__overlay h1 {
@@ -87,5 +87,11 @@
 @media (max-width: 768px) {
   .hero {
     min-height: 48vh;
+    /* add safe top offset so header (fixed) doesn't overlap hero content on small screens */
+    padding-top: calc(4rem + env(safe-area-inset-top, 0px));
+  }
+  /* On narrow screens, overlay needs only small internal padding because .hero has top offset */
+  .hero__overlay {
+    padding-top: 0.75rem; /* small internal padding; main offset applied to .hero */
   }
 }

@@ -9,8 +9,9 @@ export async function GET() {
     const User = getUserModel();
     const users = await User.find().lean().exec();
     return NextResponse.json(users.map(u => ({ ...u })));
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || String(err) }, { status: 500 });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -25,15 +26,16 @@ export async function POST(req: Request) {
     const exists = await User.findOne({ email: data.email }).lean().exec();
     if (exists) return NextResponse.json({ error: 'User already exists' }, { status: 409 });
     // hash password
-    // runtime require to avoid bundler issues
-    // eslint-disable-next-line no-eval
-    const reqfn: any = eval('require');
-    const bcrypt = reqfn('bcryptjs');
-    const hash = await bcrypt.hash(data.password, 10);
+  // runtime require to avoid bundler issues
+  // eslint-disable-next-line no-eval
+  const reqfn = eval('require') as NodeRequire;
+  const bcrypt = reqfn('bcryptjs') as { hash: (s: string, rounds: number) => Promise<string> };
+  const hash = await bcrypt.hash(data.password, 10);
   // Public registration must always create standard users. Ignore any role supplied by client.
   const created = await User.create({ name: data.name, email: data.email, passwordHash: hash, role: 'user' });
   return NextResponse.json({ id: created._id, email: created.email, name: created.name, role: created.role }, { status: 201 });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || String(err) }, { status: 400 });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 }

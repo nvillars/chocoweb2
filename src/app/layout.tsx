@@ -15,12 +15,12 @@ import Footer from '../components/Footer';
 
 
 export const metadata: Metadata = {
-  title: "La Dulcería - Tienda de Chocolates",
+  title: "La Dulcerina - Tienda de Chocolates",
   description: "La mejor tienda virtual de chocolates de cacao",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "La Dulcería"
+  title: "La Dulcerina"
   },
   formatDetection: {
     telephone: false

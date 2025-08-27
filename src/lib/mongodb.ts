@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 
 // use globalThis to cache connection in dev/hot-reload
-const g: any = globalThis as any;
+type GlobalCache = { mongooseClient?: mongoose.Connection | mongoose.Mongoose } & typeof globalThis;
+const g = globalThis as GlobalCache;
 
 export async function connectToDB() {
   const uri = process.env.MONGODB_URI;

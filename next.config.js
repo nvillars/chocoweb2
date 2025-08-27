@@ -2,6 +2,7 @@
 const nextConfig = {
   compress: true,
   poweredByHeader: false,
+  // ESLint will run during builds; fix any lint errors rather than skipping them.
   async headers() {
     return [
       {

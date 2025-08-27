@@ -16,7 +16,24 @@ export default function Header() {
   const { getTotalItems } = useCart();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLElement | null>(null);
+  const firstLinkRef = useRef<HTMLAnchorElement | null>(null);
   const prevScroll = useRef<number>(0);
+  // focus management and keyboard handling for mobile sheet
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prevActive = document.activeElement as HTMLElement | null;
+    // focus first link
+    firstLinkRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      try { prevActive?.focus(); } catch (e) {}
+    };
+  }, [mobileOpen]);
 
   useEffect(() => {
     const SCROLL_THRESHOLD = 8; // smaller threshold for mobile to match desktop behaviour
@@ -36,7 +53,13 @@ export default function Header() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const headerEl = headerRef.current;
-    const mql = window.matchMedia('(max-width: 768px)');
+    type MQLWithEvents = MediaQueryList & {
+      addEventListener?: (type: 'change', listener: (e: MediaQueryListEvent) => void) => void;
+      removeEventListener?: (type: 'change', listener: (e: MediaQueryListEvent) => void) => void;
+      addListener?: (listener: (e: MediaQueryListEvent) => void) => void;
+      removeListener?: (listener: (e: MediaQueryListEvent) => void) => void;
+    };
+    const mql = window.matchMedia('(max-width: 768px)') as MQLWithEvents;
     const buffer = 10; // px extra space
 
     function apply() {
@@ -50,24 +73,16 @@ export default function Header() {
     }
 
     apply();
-    const onResize = () => requestAnimationFrame(apply);
+    const onResize = () => apply();
     window.addEventListener('resize', onResize);
-
-    // Provide safe access to legacy addListener/removeListener without using `any`
-    const mqlAny = mql as MediaQueryList & {
-      addListener?: (l: (e: MediaQueryListEvent) => void) => void;
-      removeListener?: (l: (e: MediaQueryListEvent) => void) => void;
-      addEventListener?: (type: string, listener: (e: MediaQueryListEvent) => void) => void;
-      removeEventListener?: (type: string, listener: (e: MediaQueryListEvent) => void) => void;
-    };
-
-    if (typeof mqlAny.addEventListener === 'function') mqlAny.addEventListener('change', apply);
-    else if (typeof mqlAny.addListener === 'function') mqlAny.addListener(apply);
+  // prefer modern API but fall back for older browsers
+  if (typeof mql.addEventListener === 'function') mql.addEventListener('change', apply);
+  else if (typeof mql.addListener === 'function') mql.addListener(apply);
 
     return () => {
       window.removeEventListener('resize', onResize);
-      if (typeof mqlAny.removeEventListener === 'function') mqlAny.removeEventListener('change', apply);
-      else if (typeof mqlAny.removeListener === 'function') mqlAny.removeListener(apply);
+  if (typeof mql.removeEventListener === 'function') mql.removeEventListener('change', apply);
+  else if (typeof mql.removeListener === 'function') mql.removeListener(apply);
       // cleanup var
       document.documentElement.style.removeProperty('--header-height');
     };
@@ -80,7 +95,7 @@ export default function Header() {
         <div className="flex items-center gap-4">
           <Link href="/" aria-label="Ir a inicio" className="inline-flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center text-2xl" aria-hidden>🍫</div>
-            <span className="text-lg font-semibold tracking-wide">La Dulcería</span>
+            <span className="text-lg font-semibold tracking-wide">La Dulcerina</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-4 ml-6" aria-label="Navegación principal">
@@ -108,7 +123,7 @@ export default function Header() {
           </div>
 
           <div className="md:hidden">
-            <button aria-label="Abrir menú" onClick={() => setMobileOpen(true)} className="p-2 rounded-md focus-visible:ring-4 focus-visible:ring-yellow-200 absolute right-4 top-3 md:static z-50 bg-transparent">
+            <button aria-label="Abrir menú" aria-expanded={mobileOpen} aria-controls="mobile-menu" onClick={() => setMobileOpen(true)} className="p-2 rounded-md focus-visible:ring-4 focus-visible:ring-yellow-200 md:static z-50 bg-transparent">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
@@ -122,19 +137,19 @@ export default function Header() {
       </div>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-60" aria-hidden={false}>
+        <div className="fixed inset-0 z-[60]" aria-hidden={false}>
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} aria-hidden />
-          <nav className="absolute inset-0 md:inset-auto md:bottom-0 left-0 right-0 bg-white p-6 rounded-t-xl md:rounded-none shadow-elev overflow-auto" role="dialog" aria-modal="true" aria-label="Menú móvil">
+          <nav id="mobile-menu" ref={(el) => { mobileMenuRef.current = el; }} className="absolute inset-0 md:inset-auto md:bottom-0 left-0 right-0 bg-white p-6 rounded-t-xl md:rounded-none shadow-elev overflow-auto" role="dialog" aria-modal="true" aria-label="Menú móvil">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">🍫</div>
-                <div className="font-semibold">La Dulcería</div>
+                <div className="font-semibold">La Dulcerina</div>
               </div>
               <button onClick={() => setMobileOpen(false)} aria-label="Cerrar menú" className="p-2 rounded-md">✕</button>
             </div>
 
             <ul className="space-y-3">
-              <li><Link href="/" onClick={() => setMobileOpen(false)} className="block text-lg">Inicio</Link></li>
+              <li><Link href="/" ref={firstLinkRef} onClick={() => setMobileOpen(false)} className="block text-lg">Inicio</Link></li>
               <li><Link href="/productos" onClick={() => setMobileOpen(false)} className="block text-lg">Productos</Link></li>
               <li><Link href="/mis-pedidos" onClick={() => setMobileOpen(false)} className="block text-lg">Mis pedidos</Link></li>
               <li><Link href="/admin" onClick={() => setMobileOpen(false)} className="block text-lg">Admin</Link></li>
@@ -146,3 +161,4 @@ export default function Header() {
     </header>
   );
 }
+

@@ -6,8 +6,9 @@ export async function GET() {
   try {
     const docs = await listProducts();
     return NextResponse.json(docs);
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || String(e) }, { status: 500 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -17,7 +18,8 @@ export async function POST(req: Request) {
     const prod = await createProduct(body);
     publish({ type: 'product.changed', payload: { action: 'create', product: prod } });
     return NextResponse.json(prod, { status: 201 });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || String(e) }, { status: 400 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 }

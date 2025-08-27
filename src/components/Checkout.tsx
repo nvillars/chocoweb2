@@ -11,20 +11,22 @@ export default function Checkout() {
   const { getCartItems, getTotalPrice, setQuantity } = useCart();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
-  const [createdOrder, setCreatedOrder] = useState<any | null>(null);
+  type OrderSummary = { _id?: string; id?: string; amounts?: { total?: number } };
+  const [createdOrder, setCreatedOrder] = useState<OrderSummary | null>(null);
   const router = useRouter();
 
   const onConfirm = async () => {
     setLoading(true);
-    const items = getCartItems().map((it:any)=>({ productId: it.id, qty: it.quantity }));
+  const items = getCartItems().map((it)=>({ productId: it.id, qty: it.quantity }));
     // generate a safe idempotency key: prefer crypto.randomUUID, then crypto.getRandomValues UUIDv4, else Math fallback
     const generateIdKey = () => {
       try {
-        // @ts-ignore - runtime check
-        if (typeof crypto !== 'undefined' && typeof (crypto as any).randomUUID === 'function') return (crypto as any).randomUUID();
+        type CryptoLike = { randomUUID?: () => string; getRandomValues?: (arr: Uint8Array) => Uint8Array };
+        const g = typeof globalThis !== 'undefined' ? (globalThis as unknown as { crypto?: unknown }).crypto as CryptoLike | undefined : undefined;
+        if (g && typeof g.randomUUID === 'function') return g.randomUUID();
         // use getRandomValues to produce RFC4122 v4 UUID
-        if (typeof crypto !== 'undefined' && typeof (crypto as any).getRandomValues === 'function') {
-          const bytes = (crypto as any).getRandomValues(new Uint8Array(16)) as Uint8Array;
+        if (g && typeof g.getRandomValues === 'function') {
+          const bytes = g.getRandomValues(new Uint8Array(16));
           // Per RFC4122 v4
           bytes[6] = (bytes[6] & 0x0f) | 0x40;
           bytes[8] = (bytes[8] & 0x3f) | 0x80;
@@ -43,8 +45,8 @@ export default function Checkout() {
       const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type':'application/json', 'Idempotency-Key': idKey }, body: JSON.stringify({ user: { name: formData.nombre, email: formData.email }, items, paymentMethod: 'cod' }) });
       if (res.status === 201) {
         const data = await res.json().catch(()=>({}));
-        const ord = data?.order || data;
-        setCreatedOrder(ord || { createdAt: new Date().toISOString() });
+  const ord = (data?.order || data) as OrderSummary | undefined;
+  setCreatedOrder(ord || { createdAt: new Date().toISOString() } as unknown as OrderSummary);
         toast.push({ message: 'Orden creada' });
         // clear cart
         for (const it of getCartItems()) setQuantity(it.id, 0);
@@ -59,8 +61,9 @@ export default function Checkout() {
         const msg = await res.json();
         toast.push({ message: 'Error: ' + JSON.stringify(msg) });
       }
-    } catch (e:any) {
-      toast.push({ message: String(e) });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.push({ message: msg });
     }
     setLoading(false);
   };
@@ -105,7 +108,7 @@ export default function Checkout() {
               <h3 className="text-xl font-bold text-green-800 mb-2">Pedido recibido</h3>
               <p className="text-sm text-green-700 mb-2">Gracias. Tu pedido ha sido creado correctamente.</p>
               <p className="text-sm text-gray-700">Número de orden: <span className="font-mono text-gray-900">{createdOrder._id ?? createdOrder.id ?? '—'}</span></p>
-              <p className="text-sm text-gray-700">Total: <span className="font-semibold">S/ {(createdOrder.amounts?.total ?? 0).toFixed(2)}</span></p>
+              <p className="text-sm text-gray-700">Total: <span className="font-semibold">S/ {(Number(createdOrder.amounts?.total) || 0).toFixed(2)}</span></p>
               <div className="mt-4 flex gap-2 justify-center">
                 <button onClick={() => router.push('/')} className="px-4 py-2 bg-[#4E260E] text-white rounded-md">Volver al inicio</button>
                 <button onClick={() => router.push(`/orders/${createdOrder._id ?? createdOrder.id}`)} className="px-4 py-2 bg-white border rounded-md">Ver detalle</button>

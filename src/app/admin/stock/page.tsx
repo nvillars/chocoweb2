@@ -21,21 +21,21 @@ export default function StockAdmin() {
   // handler for SSE events (defined at top-level of component so hooks rules are respected)
   const handleEvent = (ev: MessageEvent) => {
     try {
-      const payload = JSON.parse(ev.data);
-      const { action, product } = payload as any;
+  const payload = JSON.parse(ev.data) as { action: string; product: Partial<P> & { _id: string } };
+  const { action, product } = payload;
       // if the page is not visible, mark that there was a remote update
       if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
         setRemoteUpdate(true);
       }
       setProducts(prev => {
         const copy = [...prev];
-        const idx = copy.findIndex(p => p._id === product._id || (p as any).slug === (product as any).slug);
-        if (action === 'create' || action === 'restore') {
-          if (idx === -1) copy.unshift(product);
-          else copy[idx] = product;
+          const idx = copy.findIndex(p => p._id === product._id);
+          if (action === 'create' || action === 'restore') {
+            if (idx === -1) copy.unshift({ _id: product._id, name: product.name || 'Producto', description: product.description || '', stock: product.stock ?? 0 });
+            else copy[idx] = { ...copy[idx], ...product };
         } else if (action === 'update') {
-          if (idx === -1) copy.unshift(product);
-          else copy[idx] = product;
+            if (idx === -1) copy.unshift({ _id: product._id, name: product.name || 'Producto', description: product.description || '', stock: product.stock ?? 0 });
+            else copy[idx] = { ...copy[idx], ...product };
         } else if (action === 'delete' || action === 'deletePermanent') {
           if (idx !== -1) copy.splice(idx, 1);
         }
@@ -58,7 +58,7 @@ export default function StockAdmin() {
   // optimistic edit values + debounce
   const [edits, setEdits] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
-  const debounceMap = React.useRef<Record<string, any>>({});
+  const debounceMap = React.useRef<Record<string, ReturnType<typeof setTimeout> | number>>({});
 
   const doPatch = async (id: string, qty: number) => {
     setSaving(s => ({ ...s, [id]: true }));

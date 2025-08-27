@@ -11,7 +11,7 @@ export async function GET(req: Request) {
     await connectToDB();
     const Order = getOrderModel();
 
-    // Read demo session cookie set by the client: ladulceria_auth
+    // Read demo session cookie set by the client: ladulcerina_auth
     const cookieHeader = req.headers.get('cookie') || '';
     const cookies = Object.fromEntries(
       cookieHeader
@@ -26,7 +26,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
     }
 
-    let session: any = null;
+    let session: { email?: string; role?: string } | null = null;
     try {
       session = JSON.parse(decodeURIComponent(raw));
     } catch (e) {
@@ -44,8 +44,9 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json(orders);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || String(err) }, { status: 500 });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -54,21 +55,27 @@ export async function POST(req: Request) {
     await connectToDB();
     const idempotencyKey = req.headers.get('Idempotency-Key') || undefined;
     const body = await req.json().catch(() => null);
-    const created = await createOrder(body, { idempotencyKey });
-    // created may be an object { order, updatedProducts } or just { order }
-    const order = (created as any).order || created;
-    const updatedProducts = (created as any).updatedProducts || [];
+  const created = await createOrder(body, { idempotencyKey }) as { order?: unknown; updatedProducts?: unknown[] } | unknown;
+  // created may be an object { order, updatedProducts } or just the order
+  let order: unknown = created;
+  let updatedProducts: unknown[] = [];
+  if (created && typeof created === 'object') {
+    const c = created as { order?: unknown; updatedProducts?: unknown[] };
+    if (c.order !== undefined) order = c.order;
+    if (Array.isArray(c.updatedProducts)) updatedProducts = c.updatedProducts;
+  }
     for (const p of updatedProducts) {
       publish({ type: 'product.changed', payload: { action: 'update', product: p } });
     }
     return NextResponse.json({ order }, { status: 201 });
-  } catch (err: any) {
-    if (err && err.code === 'OUT_OF_STOCK') {
-      return NextResponse.json({ error: 'OUT_OF_STOCK', productId: err.productId, available: err.available }, { status: 409 });
+  } catch (err: unknown) {
+    const errObj = err as { code?: string; productId?: string; available?: number; message?: string } | undefined;
+    if (errObj && errObj.code === 'OUT_OF_STOCK') {
+      return NextResponse.json({ error: 'OUT_OF_STOCK', productId: errObj.productId, available: errObj.available }, { status: 409 });
     }
-    if (err && err.message && err.message.includes('Insufficient')) {
-      return NextResponse.json({ error: err.message }, { status: 409 });
+    if (errObj && errObj.message && errObj.message.includes('Insufficient')) {
+      return NextResponse.json({ error: errObj.message }, { status: 409 });
     }
-    return NextResponse.json({ error: err?.message || String(err) }, { status: 400 });
+    return NextResponse.json({ error: errObj?.message || String(err) }, { status: 400 });
   }
 }

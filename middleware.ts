@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server';
 export function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
   if (url.pathname.startsWith('/admin')) {
-    const cookie = req.cookies.get('ladulceria_auth')?.value;
+    const cookie = req.cookies.get('ladulcerina_auth')?.value;
     if (!cookie) {
       url.pathname = '/login';
       return NextResponse.redirect(url);
